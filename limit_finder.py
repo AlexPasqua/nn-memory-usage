@@ -6,7 +6,7 @@ calculates a lower limit for the memory usage
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import models
-
+import numpy as np
 import argparse
 
 
@@ -40,7 +40,21 @@ def find_lower_limit(model, dtype=None):
     import numpy as np
     for i in range(len(model.layers)):
         layer = model.layers[i]
-        print(np.shape(layer.get_weights()))
+        type = layer.__class__.__name__
+        layer_params = 0
+        if type == 'Conv2D':
+            shape = np.shape(layer.get_weights()[0])
+            layer_params = shape[0]
+            layer_params = layer_params * shape[i] for i in range(1, len(shape))
+            if len(layer.get_weights()) > 1:
+                layer_params = layer_params + np.shape(layer.get_weights()[1])[0]
+
+        elif type == 'PReLU':
+            shape = np.shape(layer.get_weights())
+            layer_params = shape[0]
+            layer_params = layer_params * shape[i] for i in range(1, len(shape))
+
+        limit = limit + layer_params * dtype
 
 
 if __name__ == '__main__':
