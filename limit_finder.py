@@ -10,6 +10,10 @@ import numpy as np
 import argparse
 
 
+KILO = 1000.0
+MILLION = 1000000.0
+BILLION = 1000000000.0
+
 def load_model(model_path):
     ''' Loads and returns a keras model '''
     return keras.models.load_model(model_path)
@@ -20,7 +24,7 @@ def find_dtype(model):
     return model.inputs[0].dtype
 
 
-def find_lower_limit(model, dtype=None):
+def find_lower_limit(argv, verbose, dtype=None):
     """
     Calculate a lower limit for the memory usage of the model
 
@@ -32,8 +36,10 @@ def find_lower_limit(model, dtype=None):
     """
 
     # If no data type is provided, use the function to get it
-    if dtype == None:
-        dtype = find_dtype(model)
+    if dtype == None: dtype = find_dtype(model)
+    # dtype will be expressed in bytes
+    if dtype == 'float32': dtype = 4
+    elif dtype == 'float16': dtype = 2
 
     # Go through the model and find the lower limit of its memory usage
     limit = 0
@@ -42,19 +48,44 @@ def find_lower_limit(model, dtype=None):
         layer = model.layers[i]
         type = layer.__class__.__name__
         layer_params = 0
+
+        if verbose:
+            print(f'\nLayer: {layer.name}\nType: {type}')
+
         if type == 'Conv2D':
             shape = np.shape(layer.get_weights()[0])
             layer_params = shape[0]
-            layer_params = layer_params * shape[i] for i in range(1, len(shape))
+            for i in range(1, len(shape)):
+                layer_params = layer_params * shape[i]
             if len(layer.get_weights()) > 1:
                 layer_params = layer_params + np.shape(layer.get_weights()[1])[0]
 
         elif type == 'PReLU':
             shape = np.shape(layer.get_weights())
             layer_params = shape[0]
-            layer_params = layer_params * shape[i] for i in range(1, len(shape))
+            for i in range(1, len(shape)):
+                layer_params = layer_params * shape[i]
+
+        elif type == 'Dense':
+            '''print(np.shape(layer.get_weights()))
+            print(np.shape(layer.get_weights()[0]))
+            print(np.shape(layer.get_weights()[0][0]))
+
+            print()
+            print(np.shape(layer.get_weights()[1]))'''
+
+            layer_params = 0
+            weights = layer.get_weights()[0]
+            layer_params = layer_params + np.shape(weights)[0] * len(weights[0])
+            if len(layer.get_weights()) > 1:
+                layer_params = layer_params + len(layer.get_weights()[1])
 
         limit = limit + layer_params * dtype
+        if verbose:
+            print(f"This layer's number of parameters: {layer_params}")
+            print(f'Current lower limit of memory usage: {limit} Bytes')
+
+    return limit
 
 
 if __name__ == '__main__':
@@ -62,7 +93,25 @@ if __name__ == '__main__':
         description="Having a Keras model and some data about its input, calculates a lower limit for the memory usage"
     )
     parser.add_argument('keras_model', action='store', help="The filename (full path) of the .h5 file containing the Keras model")
+    parser.add_argument('-v', '--verbose', action='store_true')
     args = parser.parse_args()
 
     model = load_model(args.keras_model)
     data_type = find_dtype(model)
+    limit = find_lower_limit(model, args.verbose, data_type)
+
+    # Find best dividend to represent the result
+    if limit >= BILLION:
+        dividend = BILLION
+        unit_of_measure = 'GB'
+    elif limit >= MILLION:
+        dividend = MILLION
+        unit_of_measure = 'MB'
+    elif limit >= KILO:
+        dividend = KILO
+        unit_of_measure = 'KB'
+    else:
+        dividend = 1.0
+        unit_of_measure = 'Bytes'
+
+    print('\nMemory usage lower limit: {} {}\n'.format(float(limit) / dividend, unit_of_measure))
