@@ -82,6 +82,8 @@ def find_lower_limit(argv, verbose, dtype=None):
 
     # If no data type is provided, use the function to get it
     if dtype == None: dtype = find_dtype(model)
+    if verbose:
+        print(f'Data type: {dtype}')
     # dtype will be expressed in bytes
     if dtype == 'float32': dtype = 4
     elif dtype == 'float16': dtype = 2
