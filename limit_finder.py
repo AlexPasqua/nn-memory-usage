@@ -87,6 +87,7 @@ def find_lower_limit(argv, verbose, dtype=None):
     # dtype will be expressed in bytes
     if dtype == 'float32': dtype = 4
     elif dtype == 'float16': dtype = 2
+    elif dtype == 'float64': dtype = 8
 
     # Go through the model and find the lower limit of its memory usage
     limit = 0
