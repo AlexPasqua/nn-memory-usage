@@ -24,9 +24,54 @@ def find_dtype(model):
     return model.inputs[0].dtype
 
 
+def calc_params_Conv2D(layer):
+    """
+    Calculates the number of parameters for a Conv2D Keras layer
+    Arguments:
+        layer: a Keras layer (Conv2D)
+    Returns: the number of this layer's paramenters
+    """
+    shape = np.shape(layer.get_weights()[0])
+    layer_params = shape[0]
+    for i in range(1, len(shape)):
+        layer_params = layer_params * shape[i]
+    if len(layer.get_weights()) > 1:
+        layer_params = layer_params + np.shape(layer.get_weights()[1])[0]
+    return layer_params
+
+
+def calc_params_PReLU(layer):
+    """
+    Calculates the number of parameters for a PReLU Keras layer
+    Arguments:
+        layer: a Keras layer (PReLU)
+    Returns: the number of this layer's paramenters
+    """
+    shape = np.shape(layer.get_weights())
+    layer_params = shape[0]
+    for i in range(1, len(shape)):
+        layer_params = layer_params * shape[i]
+    return layer_params
+
+
+def calc_params_Dense(layer):
+    """
+    Calculates the number of parameters for a Dense Keras layer
+    Arguments:
+        layer: a Keras layer (Dense)
+    Returns: the number of this layer's paramenters
+    """
+    layer_params = 0
+    weights = layer.get_weights()[0]
+    layer_params = layer_params + np.shape(weights)[0] * len(weights[0])
+    if len(layer.get_weights()) > 1:
+        layer_params = layer_params + len(layer.get_weights()[1])
+    return layer_params
+
+
 def find_lower_limit(argv, verbose, dtype=None):
     """
-    Calculate a lower limit for the memory usage of the model
+    Calculates a lower limit for the memory usage of the model
 
     Arguments:
         model: a Keras model
@@ -52,33 +97,10 @@ def find_lower_limit(argv, verbose, dtype=None):
         if verbose:
             print(f'\nLayer: {layer.name}\nType: {type}')
 
-        if type == 'Conv2D':
-            shape = np.shape(layer.get_weights()[0])
-            layer_params = shape[0]
-            for i in range(1, len(shape)):
-                layer_params = layer_params * shape[i]
-            if len(layer.get_weights()) > 1:
-                layer_params = layer_params + np.shape(layer.get_weights()[1])[0]
-
-        elif type == 'PReLU':
-            shape = np.shape(layer.get_weights())
-            layer_params = shape[0]
-            for i in range(1, len(shape)):
-                layer_params = layer_params * shape[i]
-
-        elif type == 'Dense':
-            '''print(np.shape(layer.get_weights()))
-            print(np.shape(layer.get_weights()[0]))
-            print(np.shape(layer.get_weights()[0][0]))
-
-            print()
-            print(np.shape(layer.get_weights()[1]))'''
-
-            layer_params = 0
-            weights = layer.get_weights()[0]
-            layer_params = layer_params + np.shape(weights)[0] * len(weights[0])
-            if len(layer.get_weights()) > 1:
-                layer_params = layer_params + len(layer.get_weights()[1])
+        if type in ('Conv2D', 'PReLU', 'Dense'):
+            # Dictionary where a type corresponds to a function name
+            functions_map = {'Conv2D': calc_params_Conv2D, 'PReLU': calc_params_PReLU, 'Dense': calc_params_Dense}
+            layer_params = functions_map[type](layer)   # call the function whoes name is the value of functions_map[type]
 
         limit = limit + layer_params * dtype
         if verbose:
