@@ -69,7 +69,7 @@ def calc_params_Dense(layer):
     return layer_params
 
 
-def find_lower_limit(argv, verbose, dtype=None):
+def find_lower_limit(argv):
     """
     Calculates a lower limit for the memory usage of the model
 
@@ -77,11 +77,16 @@ def find_lower_limit(argv, verbose, dtype=None):
         model: a Keras model
         dtype: the data type of the model's parameter / weights / activations ...
 
-    Returns: the lower limit of the model's memory usage
+    Returns: the lower limit of the model's memory usage in Bytes
     """
 
-    # If no data type is provided, use the function to get it
-    if dtype == None: dtype = find_dtype(model)
+    verbose = argv.verbose
+
+    # Load model
+    model = load_model(argv.keras_model)
+
+    # Retrieve the model's data type
+    dtype = find_dtype(model)
     if verbose:
         print(f'Data type: {dtype}')
     # dtype will be expressed in bytes
@@ -121,9 +126,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', action='store_true')
     args = parser.parse_args()
 
-    model = load_model(args.keras_model)
-    data_type = find_dtype(model)
-    limit = find_lower_limit(model, args.verbose, data_type)
+    limit = find_lower_limit(args)
 
     # Find best dividend to represent the result
     if limit >= BILLION:
