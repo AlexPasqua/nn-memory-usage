@@ -98,6 +98,9 @@ def calc_input_size(n_inputs, model, dtype=None, input_size=None):
     Returns: the memory used by the inputs in Bytes
     """
 
+    if n_inputs == 0:
+        return 0
+
     if dtype == None:
         dtype = find_dtype(model)
 
@@ -170,9 +173,9 @@ if __name__ == '__main__':
         description="Having a Keras model and some data about its input, calculates a lower limit for the memory usage"
     )
     parser.add_argument('keras_model', action='store', help="The filename (full path) of the .h5 file containing the Keras model")
-    parser.add_argument('n_inputs', action='store', type=int, help="The number of input images to be processed 'at the same time'")
+    parser.add_argument('--n_inputs', action='store', type=int, default=0, help="The number of input images to be processed 'at the same time'")
     parser.add_argument('--input_size', action='store', type=my_regex_type, help="Input size as <height>x<width>x3 if RGB, if grayscale <height>x<width>")
-    parser.add_argument('--input_dtype', action='store', help="The input's data type")
+    parser.add_argument('--input_dtype', action='store', type=str, choices={'float16', 'float32', 'float64'}, default='float32', help="The input's data type")
     parser.add_argument('-v', '--verbose', action='store_true')
     args = parser.parse_args()
 
