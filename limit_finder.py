@@ -155,7 +155,7 @@ def find_lower_limit(argv):
         if type in ('Conv2D', 'PReLU', 'Dense'):
             # Dictionary where a type corresponds to a function name
             functions_map = {'Conv2D': calc_params_Conv2D, 'PReLU': calc_params_PReLU, 'Dense': calc_params_Dense}
-            layer_params = functions_map[type](layer)   # call the function whoes name is the value of functions_map[type]
+            layer_params = functions_map[type](layer)   # call the function whose name is the value of functions_map[type]
 
         limit = limit + layer_params * dtype
         if verbose:
